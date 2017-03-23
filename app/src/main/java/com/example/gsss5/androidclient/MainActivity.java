@@ -1,27 +1,36 @@
 package com.example.gsss5.androidclient;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
-        import java.io.IOException;
-        import java.io.InputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.String;
+import java.io.OutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
-        import java.net.UnknownHostException;
+import java.net.UnknownHostException;
+import java.util.LinkedList;
 
-        import android.os.AsyncTask;
-        import android.os.Bundle;
-        import android.app.Activity;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.app.Activity;
 import android.util.Log;
 import android.view.View;
-        import android.widget.Button;
-        import android.widget.EditText;
-        import android.widget.TextView;
+import android.widget.EditText;
+import android.widget.TextView;
 
 public class MainActivity extends Activity {
-
+    BufferedReader mReader;
+    BufferedWriter mWriter;
     TextView textResponse,textMessageBox ;
     EditText editTextAddress, editTextPort,mEditSend;
     Socket socket = null;
+    String IpAddress;
+    int PortNum;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,6 +49,7 @@ public class MainActivity extends Activity {
                     editTextAddress.getText().toString(),
                     Integer.parseInt(editTextPort.getText().toString()),mEditSend.getText().toString());
             myClientTask.execute();
+
         } catch(Exception e) {
             Log.d("tag", "connect error.");
         }
@@ -54,14 +64,16 @@ public class MainActivity extends Activity {
     public void onBtnSend() {
         try {
             // EditText 에서 메시지를 구한 다음 기존 메시지를 삭제한다
-            MyClientTask myClientTask = new MyClientTask(
-                    editTextAddress.getText().toString(),
-                    Integer.parseInt(editTextPort.getText().toString()),mEditSend.getText().toString());
-            myClientTask.execute();
+
+
+            String strSend = mEditSend.getText().toString();
+
+            PrintWriter out = new PrintWriter(mWriter, true);
+            out.println(strSend);
             mEditSend.setText("");
+
             // 서버로 메시지 전송
-            //    PrintWriter out = new PrintWriter(mWriter, true);
-            //  out.println(strSend);
+
         } catch(Exception e) {
             Log.d("tag", "Data send error.");
         }
@@ -92,7 +104,9 @@ public class MainActivity extends Activity {
                 // 접속 시작
                 onBtnClear();
                 break;
-           }}
+        }}
+
+
     public class MyClientTask extends AsyncTask<Void, Void, Void> {
 
         String dstAddress;
@@ -102,7 +116,7 @@ public class MainActivity extends Activity {
         MyClientTask(String addr, int port,String msg){
             dstAddress = addr;
             dstPort = port;
-           strSend=msg;
+            strSend=msg;
         }
 
         @Override
@@ -114,10 +128,11 @@ public class MainActivity extends Activity {
                 ByteArrayOutputStream byteArrayOutputStream =
                         new ByteArrayOutputStream(1024);
                 byte[] buffer = new byte[1024];
-
+                mWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+                mReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 int bytesRead;
                 InputStream inputStream = socket.getInputStream();
-
+                OutputStream outputStream = socket.getOutputStream();
     /*
      * notice:
      * inputStream.read() will block if no data return
@@ -126,14 +141,13 @@ public class MainActivity extends Activity {
                     byteArrayOutputStream.write(buffer, 0, bytesRead);
                     response += byteArrayOutputStream.toString("UTF-8");
                 }
-                DataOutputStream  dos = new DataOutputStream(socket.getOutputStream());
-                DataInputStream dis = new DataInputStream(socket.getInputStream());
 
-                new Receiver(dis).start();
+
+
 
                 while(true) {
 
-                    dos.writeUTF(strSend);
+
                 }
             } catch (UnknownHostException e) {
                 // TODO Auto-generated catch block
@@ -163,27 +177,7 @@ public class MainActivity extends Activity {
         }
 
     }
-    class Receiver extends Thread {
-        private DataInputStream dis;
 
-        public Receiver(DataInputStream dis) {
-            this.dis = dis;
-        }
 
-        @Override
-        public void run() {
-            super.run();
-
-            try {
-                while(true) {
-                    String message = dis.readUTF();
-                    textMessageBox.setText(message);
-                    System.out.println(message);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 }
 
